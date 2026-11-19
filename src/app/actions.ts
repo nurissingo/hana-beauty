@@ -55,15 +55,8 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
 
     const id = createOrder({ customerName: name, phone, city, comment, items, total });
 
-    const customer = [`Имя: ${name}`, `Телефон: ${phone}`];
-    if (city) customer.push(`Город: ${city}`);
-    if (comment) customer.push(`Комментарий: ${comment}`);
-    const message = [
-      `Здравствуйте! Заказ #${id} с сайта Hana Beauty`,
-      items.map((i) => `• ${i.brand} ${i.name} × ${i.qty} — ${formatPrice(i.price * i.qty)}`).join("\n"),
-      `Итого: ${formatPrice(total)}`,
-      customer.join("\n"),
-    ].join("\n\n");
+    // Keep WhatsApp URL short — long wa.me links often fail on mobile browsers
+    const message = `Здравствуйте! Заказ #${id} с сайта Hana Beauty (${formatPrice(total)}). Имя: ${name}, тел: ${phone}`;
 
     return { ok: true, id, whatsapp: whatsappUrl(message) };
   } catch (error) {

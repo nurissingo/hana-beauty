@@ -119,6 +119,83 @@ export function listBrands(): { brand: string; count: number }[] {
     .map((r) => ({ brand: String(r.brand), count: Number(r.count) }));
 }
 
+export type BrandRow = {
+  id: number;
+  name: string;
+  sort: number;
+  showHome: boolean;
+  count: number;
+};
+
+export function listManagedBrands(): BrandRow[] {
+  return (
+    getDb()
+      .prepare(
+        `SELECT b.id, b.name, b.sort, b.show_home,
+           (SELECT COUNT(*) FROM products p WHERE p.is_active = 1 AND p.brand = b.name) AS count
+         FROM brands b
+         ORDER BY b.show_home DESC, b.sort ASC, b.name ASC`,
+      )
+      .all() as Row[]
+  ).map((r) => ({
+    id: Number(r.id),
+    name: String(r.name),
+    sort: Number(r.sort),
+    showHome: Boolean(r.show_home),
+    count: Number(r.count),
+  }));
+}
+
+/** Brands curated for homepage (compact). Falls back to top product brands. */
+export function listHomeBrands(limit = 8): { brand: string; count: number }[] {
+  const curated = (
+    getDb()
+      .prepare(
+        `SELECT b.name AS brand,
+           (SELECT COUNT(*) FROM products p WHERE p.is_active = 1 AND p.brand = b.name) AS count
+         FROM brands b
+         WHERE b.show_home = 1
+         ORDER BY b.sort ASC, b.name ASC
+         LIMIT ?`,
+      )
+      .all(limit) as Row[]
+  ).map((r) => ({ brand: String(r.brand), count: Number(r.count) }));
+
+  if (curated.length) return curated;
+  return listBrands().slice(0, limit);
+}
+
+export function createBrand(name: string, sort = 0, showHome = false) {
+  const cleaned = name.trim().slice(0, 80);
+  if (!cleaned) throw new Error("empty brand");
+  getDb()
+    .prepare("INSERT INTO brands (name, sort, show_home) VALUES (?, ?, ?)")
+    .run(cleaned, sort, showHome ? 1 : 0);
+}
+
+export function updateBrand(id: number, data: { name: string; sort: number; showHome: boolean }) {
+  getDb()
+    .prepare("UPDATE brands SET name = ?, sort = ?, show_home = ? WHERE id = ?")
+    .run(data.name.trim().slice(0, 80), data.sort, data.showHome ? 1 : 0, id);
+}
+
+export function setBrandHome(id: number, showHome: boolean) {
+  getDb().prepare("UPDATE brands SET show_home = ? WHERE id = ?").run(showHome ? 1 : 0, id);
+}
+
+export function deleteBrand(id: number) {
+  getDb().prepare("DELETE FROM brands WHERE id = ?").run(id);
+}
+
+export function brandNameExists(name: string, exceptId?: number) {
+  const row = exceptId
+    ? (getDb().prepare("SELECT id FROM brands WHERE lower(name) = lower(?) AND id != ?").get(name.trim(), exceptId) as
+        | { id: number }
+        | undefined)
+    : (getDb().prepare("SELECT id FROM brands WHERE lower(name) = lower(?)").get(name.trim()) as { id: number } | undefined);
+  return Boolean(row);
+}
+
 export type ProductInput = {
   slug: string;
   name: string;

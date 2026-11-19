@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { placeOrder } from "@/app/actions";
 import { Icon, WhatsAppIcon } from "@/components/Icon";
 import { ProductVisual } from "@/components/ProductVisual";
@@ -17,47 +17,92 @@ export function CartDrawer() {
   const [view, setView] = useState<View>("cart");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ id: number; whatsapp: string } | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
+
+  const resetAfterClose = useCallback(() => {
+    cart.clear();
+    setResult(null);
+    setView("cart");
+    setError(null);
+    setPending(false);
+  }, [cart]);
+
+  const close = useCallback(() => {
+    const wasSuccess = view === "success";
+    cart.setOpen(false);
+    window.setTimeout(() => {
+      if (wasSuccess) resetAfterClose();
+      else {
+        setView("cart");
+        setError(null);
+        setPending(false);
+      }
+    }, 320);
+  }, [cart, view, resetAfterClose]);
 
   useEffect(() => {
     if (!cart.isOpen) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && cart.setOpen(false);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close();
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [cart]);
+  }, [cart.isOpen, close]);
 
-  const close = () => {
-    cart.setOpen(false);
-    if (view === "success") setTimeout(() => setView("cart"), 400);
+  const openWhatsApp = () => {
+    if (!result?.whatsapp) return;
+    window.location.href = result.whatsapp;
   };
 
-  const submit = (form: FormData) => {
+  const continueShopping = () => {
+    cart.clear();
+    setResult(null);
+    setView("cart");
     setError(null);
-    startTransition(async () => {
+    setPending(false);
+    cart.setOpen(false);
+  };
+
+  const submit = async (form: FormData) => {
+    if (pending) return;
+    setError(null);
+    setPending(true);
+    try {
       const res = await placeOrder({
         items: cart.lines.map((l) => ({ id: l.id, qty: l.qty })),
         name: String(form.get("name") ?? ""),
         phone: String(form.get("phone") ?? ""),
         city: String(form.get("city") ?? ""),
         comment: String(form.get("comment") ?? ""),
-        website: String(form.get("website") ?? ""),
+        website: String(form.get("company_url_hp") ?? ""),
       });
       if (res.ok) {
         setResult({ id: res.id, whatsapp: res.whatsapp });
         setView("success");
-        cart.clear();
       } else {
         setError(res.error === "required" ? t.cart.errorRequired : t.cart.errorGeneric);
       }
-    });
+    } catch {
+      setError(t.cart.errorGeneric);
+    } finally {
+      setPending(false);
+    }
   };
 
   const title = view === "checkout" ? t.cart.checkout : view === "success" ? t.cart.successTitle : t.cart.title;
 
   return (
     <>
-      <div className={`drawer-backdrop ${cart.isOpen ? "open" : ""}`} onClick={close} aria-hidden="true" />
-      <aside className={`drawer glass-strong ${cart.isOpen ? "open" : ""}`} aria-label={t.cart.title} aria-hidden={!cart.isOpen}>
+      <div
+        className={`drawer-backdrop ${cart.isOpen ? "open" : ""}`}
+        onClick={close}
+        aria-hidden="true"
+      />
+      <aside
+        className={`drawer glass-strong ${cart.isOpen ? "open" : ""}`}
+        aria-label={t.cart.title}
+        {...(!cart.isOpen ? { inert: true } : {})}
+      >
         <div className="drawer-head">
           <h3>
             {title}
@@ -69,18 +114,18 @@ export function CartDrawer() {
         </div>
 
         {view === "success" && result ? (
-          <div className="drawer-body" style={{ textAlign: "center" }}>
+          <div className="drawer-body drawer-success">
             <div className="success-ico">
               <Icon name="check" size={34} strokeWidth={2.2} />
             </div>
             <p className="muted" style={{ margin: "0 auto 28px", maxWidth: 340 }}>
               {t.cart.successText.replace("{id}", String(result.id))}
             </p>
-            <div style={{ display: "grid", gap: 10 }}>
-              <a href={result.whatsapp} target="_blank" rel="noreferrer" className="btn btn-wa btn-block">
+            <div className="drawer-success-actions">
+              <button type="button" className="btn btn-wa btn-block" onClick={openWhatsApp}>
                 <WhatsAppIcon /> {t.cart.whatsapp}
-              </a>
-              <button type="button" className="btn btn-glass btn-block" onClick={close}>
+              </button>
+              <button type="button" className="btn btn-glass btn-block" onClick={continueShopping}>
                 {t.cart.continue}
               </button>
             </div>
@@ -106,7 +151,16 @@ export function CartDrawer() {
             </div>
             <div className="field">
               <label htmlFor="c-phone">{t.cart.phone} *</label>
-              <input id="c-phone" name="phone" className="input" required type="tel" inputMode="tel" autoComplete="tel" placeholder="+7 7__ ___ __ __" />
+              <input
+                id="c-phone"
+                name="phone"
+                className="input"
+                required
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                placeholder="+7 7__ ___ __ __"
+              />
             </div>
             <div className="field">
               <label htmlFor="c-city">{t.cart.city}</label>
@@ -116,7 +170,7 @@ export function CartDrawer() {
               <label htmlFor="c-comment">{t.cart.comment}</label>
               <textarea id="c-comment" name="comment" className="input" rows={3} />
             </div>
-            <input className="hp" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" />
+            <input className="hp" name="company_url_hp" tabIndex={-1} autoComplete="off" aria-hidden="true" />
             {error && <p className="form-error">{error}</p>}
             <div className="total-row" style={{ marginTop: 6 }}>
               <span>{t.cart.total}</span>
@@ -125,10 +179,12 @@ export function CartDrawer() {
             <button type="submit" className="btn btn-primary btn-block" disabled={pending}>
               {pending ? t.cart.sending : t.cart.submit}
             </button>
-            <button type="button" className="btn btn-ghost" onClick={() => setView("cart")}>
+            <button type="button" className="btn btn-ghost" onClick={() => setView("cart")} disabled={pending}>
               <Icon name="back" size={16} /> {t.cart.back}
             </button>
-            <p className="muted" style={{ fontSize: 13, textAlign: "center", margin: 0 }}>{t.cart.note}</p>
+            <p className="muted" style={{ fontSize: 13, textAlign: "center", margin: 0 }}>
+              {t.cart.note}
+            </p>
           </form>
         ) : (
           <>

@@ -72,7 +72,31 @@ CREATE TABLE IF NOT EXISTS leads (
   is_done INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS brands (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE,
+  sort INTEGER NOT NULL DEFAULT 0,
+  show_home INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_brands_home ON brands(show_home, sort);
 `;
+
+function ensureBrandsSeed(db: DatabaseSync) {
+  const row = db.prepare("SELECT COUNT(*) AS n FROM brands").get() as { n: number };
+  if (row.n > 0) return;
+  const productBrands = db
+    .prepare(
+      `SELECT brand, COUNT(*) AS c FROM products
+       WHERE is_active = 1 AND brand != ''
+       GROUP BY brand ORDER BY c DESC, brand LIMIT 24`,
+    )
+    .all() as { brand: string; c: number }[];
+  if (!productBrands.length) return;
+  const insert = db.prepare("INSERT OR IGNORE INTO brands (name, sort, show_home) VALUES (?, ?, ?)");
+  productBrands.forEach((b, i) => insert.run(b.brand, i, i < 8 ? 1 : 0));
+}
 
 function open() {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -80,6 +104,7 @@ function open() {
   db.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;");
   db.exec(schema);
   seed(db);
+  ensureBrandsSeed(db);
   return db;
 }
 

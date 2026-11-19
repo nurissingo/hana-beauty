@@ -59,71 +59,112 @@ export default async function ProductsPage({ searchParams }: { searchParams: Sea
             Товары не найдены. <Link href="/admin/products/new" style={{ textDecoration: "underline" }}>Добавить первый товар</Link>
           </p>
         ) : (
-          <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Товар</th>
-                  <th>Категория</th>
-                  <th>Цена</th>
-                  <th>Остаток</th>
-                  <th>Статус</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {products.map((p) => (
-                  <tr key={p.id} className={p.isActive ? "" : "dim"}>
-                    <td>
-                      <Link href={`/admin/products/${p.id}`} className="p-cell">
-                        <span className={`p-thumb tone-${p.tone}`}><ProductVisual product={p} /></span>
-                        <span>
-                          <b>{p.name}</b>
-                          <small>
-                            {p.brand}
-                            {p.volume ? ` · ${p.volume}` : ""}
-                            {p.isFeatured ? " · Хит" : ""}
-                            {p.isNew ? " · Новинка" : ""}
-                          </small>
-                        </span>
-                      </Link>
-                    </td>
-                    <td>{p.categoryNameRu ?? <span className="muted">—</span>}</td>
-                    <td style={{ whiteSpace: "nowrap" }}>
-                      <b>{formatPrice(p.price)}</b>
-                      {p.oldPrice ? <div className="hint" style={{ paddingLeft: 0, textDecoration: "line-through" }}>{formatPrice(p.oldPrice)}</div> : null}
-                    </td>
-                    <td>
-                      <span className={`status ${p.stock <= 5 ? "low" : ""}`}>{p.stock} шт</span>
-                    </td>
-                    <td>
+          <>
+            <div className="admin-product-cards">
+              {products.map((p) => (
+                <article key={p.id} className={`admin-product-card ${p.isActive ? "" : "dim"}`}>
+                  <Link href={`/admin/products/${p.id}`} className="p-cell">
+                    <span className={`p-thumb tone-${p.tone}`}><ProductVisual product={p} /></span>
+                    <span>
+                      <b>{p.name}</b>
+                      <small>
+                        {p.brand}
+                        {p.volume ? ` · ${p.volume}` : ""}
+                      </small>
+                      <small className="admin-product-meta">
+                        {p.categoryNameRu ?? "Без категории"} · {formatPrice(p.price)} · {p.stock} шт
+                      </small>
                       <span className={`status ${p.isActive ? "on" : "off"}`}>{p.isActive ? "На сайте" : "Скрыт"}</span>
-                    </td>
-                    <td>
-                      <div className="row-actions">
-                        <form action={toggleProductAction}>
-                          <input type="hidden" name="id" value={p.id} />
-                          <input type="hidden" name="active" value={p.isActive ? "0" : "1"} />
-                          <button className="icon-btn" title={p.isActive ? "Скрыть с сайта" : "Показать на сайте"}>
-                            <Icon name={p.isActive ? "eye" : "eyeOff"} size={18} />
-                          </button>
-                        </form>
-                        <Link href={`/admin/products/${p.id}`} className="icon-btn" title="Редактировать">
-                          <Icon name="edit" size={18} />
-                        </Link>
-                        <form action={deleteProductAction}>
-                          <input type="hidden" name="id" value={p.id} />
-                          <ConfirmButton className="icon-btn danger" title="Удалить" message={`Удалить «${p.name}»? Это действие нельзя отменить.`}>
-                            <Icon name="trash" size={18} />
-                          </ConfirmButton>
-                        </form>
-                      </div>
-                    </td>
+                    </span>
+                  </Link>
+                  <div className="row-actions">
+                    <form action={toggleProductAction}>
+                      <input type="hidden" name="id" value={p.id} />
+                      <input type="hidden" name="active" value={p.isActive ? "0" : "1"} />
+                      <button className="icon-btn" type="submit" title={p.isActive ? "Скрыть" : "Показать"}>
+                        <Icon name={p.isActive ? "eye" : "eyeOff"} size={18} />
+                      </button>
+                    </form>
+                    <Link href={`/admin/products/${p.id}`} className="icon-btn" title="Редактировать">
+                      <Icon name="edit" size={18} />
+                    </Link>
+                    <form action={deleteProductAction}>
+                      <input type="hidden" name="id" value={p.id} />
+                      <ConfirmButton className="icon-btn danger" type="submit" title="Удалить" message={`Удалить «${p.name}»?`}>
+                        <Icon name="trash" size={18} />
+                      </ConfirmButton>
+                    </form>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className="table-wrap admin-desktop-only">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Товар</th>
+                    <th>Категория</th>
+                    <th>Цена</th>
+                    <th>Остаток</th>
+                    <th>Статус</th>
+                    <th />
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {products.map((p) => (
+                    <tr key={p.id} className={p.isActive ? "" : "dim"}>
+                      <td>
+                        <Link href={`/admin/products/${p.id}`} className="p-cell">
+                          <span className={`p-thumb tone-${p.tone}`}><ProductVisual product={p} /></span>
+                          <span>
+                            <b>{p.name}</b>
+                            <small>
+                              {p.brand}
+                              {p.volume ? ` · ${p.volume}` : ""}
+                              {p.isFeatured ? " · Хит" : ""}
+                              {p.isNew ? " · Новинка" : ""}
+                            </small>
+                          </span>
+                        </Link>
+                      </td>
+                      <td>{p.categoryNameRu ?? <span className="muted">—</span>}</td>
+                      <td style={{ whiteSpace: "nowrap" }}>
+                        <b>{formatPrice(p.price)}</b>
+                        {p.oldPrice ? <div className="hint" style={{ paddingLeft: 0, textDecoration: "line-through" }}>{formatPrice(p.oldPrice)}</div> : null}
+                      </td>
+                      <td>
+                        <span className={`status ${p.stock <= 5 ? "low" : ""}`}>{p.stock} шт</span>
+                      </td>
+                      <td>
+                        <span className={`status ${p.isActive ? "on" : "off"}`}>{p.isActive ? "На сайте" : "Скрыт"}</span>
+                      </td>
+                      <td>
+                        <div className="row-actions">
+                          <form action={toggleProductAction}>
+                            <input type="hidden" name="id" value={p.id} />
+                            <input type="hidden" name="active" value={p.isActive ? "0" : "1"} />
+                            <button className="icon-btn" type="submit" title={p.isActive ? "Скрыть с сайта" : "Показать на сайте"}>
+                              <Icon name={p.isActive ? "eye" : "eyeOff"} size={18} />
+                            </button>
+                          </form>
+                          <Link href={`/admin/products/${p.id}`} className="icon-btn" title="Редактировать">
+                            <Icon name="edit" size={18} />
+                          </Link>
+                          <form action={deleteProductAction}>
+                            <input type="hidden" name="id" value={p.id} />
+                            <ConfirmButton className="icon-btn danger" type="submit" title="Удалить" message={`Удалить «${p.name}»? Это действие нельзя отменить.`}>
+                              <Icon name="trash" size={18} />
+                            </ConfirmButton>
+                          </form>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </section>
     </>

@@ -89,6 +89,9 @@ export function Providers({ lang, t, children }: I18n & { children: ReactNode })
 
   useEffect(() => {
     document.documentElement.style.overflow = isOpen ? "hidden" : "";
+    return () => {
+      document.documentElement.style.overflow = "";
+    };
   }, [isOpen]);
 
   const add = useCallback((product: CartProduct, qty = 1) => {

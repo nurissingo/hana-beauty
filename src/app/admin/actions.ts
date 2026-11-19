@@ -6,8 +6,9 @@ import { redirect } from "next/navigation";
 import { checkPassword, createSession, destroySession, requireAdmin } from "@/lib/auth";
 import { slugify } from "@/lib/format";
 import {
-  categorySlugExists, createCategory, createProduct, deleteCategory, deleteLead, deleteOrder,
-  deleteProduct, getProductById, setLeadDone, setProductActive, slugExists, updateCategory,
+  brandNameExists, categorySlugExists, createBrand, createCategory, createProduct,
+  deleteBrand, deleteCategory, deleteLead, deleteOrder, deleteProduct, getProductById,
+  setBrandHome, setLeadDone, setProductActive, slugExists, updateBrand, updateCategory,
   updateOrderStatus, updateProduct, type ProductInput,
 } from "@/lib/repo";
 import { ORDER_STATUSES, SHAPES, TONES, type OrderStatus, type Shape, type Tone } from "@/lib/types";
@@ -177,6 +178,50 @@ export async function updateCategoryAction(fd: FormData) {
 export async function deleteCategoryAction(fd: FormData) {
   await requireAdmin();
   deleteCategory(Number(fd.get("id")));
+  refreshSite();
+}
+
+export async function createBrandAction(_prev: FormState, fd: FormData): Promise<FormState> {
+  await requireAdmin();
+  const name = str(fd, "name", 80);
+  if (!name) return { error: "Укажите название бренда" };
+  if (brandNameExists(name)) return { error: "Такой бренд уже есть" };
+  createBrand(name, int(fd, "sort") || 0, fd.get("showHome") === "1");
+  refreshSite();
+  return {};
+}
+
+export async function createBrandQuickAction(fd: FormData) {
+  await requireAdmin();
+  const name = str(fd, "name", 80);
+  if (!name || brandNameExists(name)) return;
+  createBrand(name, int(fd, "sort") || 0, fd.get("showHome") === "1");
+  refreshSite();
+}
+
+export async function updateBrandAction(fd: FormData) {
+  await requireAdmin();
+  const id = Number(fd.get("id"));
+  const name = str(fd, "name", 80);
+  if (!id || !name) return;
+  if (brandNameExists(name, id)) return;
+  updateBrand(id, {
+    name,
+    sort: int(fd, "sort") || 0,
+    showHome: fd.get("showHome") === "1",
+  });
+  refreshSite();
+}
+
+export async function toggleBrandHomeAction(fd: FormData) {
+  await requireAdmin();
+  setBrandHome(Number(fd.get("id")), fd.get("home") === "1");
+  refreshSite();
+}
+
+export async function deleteBrandAction(fd: FormData) {
+  await requireAdmin();
+  deleteBrand(Number(fd.get("id")));
   refreshSite();
 }
 

@@ -1,14 +1,13 @@
 import Link from "next/link";
-import { Icon, WhatsAppIcon, type IconName } from "@/components/Icon";
+import { Icon, WhatsAppIcon } from "@/components/Icon";
 import { ProductArt } from "@/components/ProductArt";
 import { ProductVisual } from "@/components/ProductVisual";
-import { LeadForm } from "@/components/site/LeadForm";
 import { ProductCard } from "@/components/site/ProductCard";
 import { instagramUrl, whatsappUrl } from "@/lib/config";
 import { formatPrice } from "@/lib/format";
 import { categoryName, productCount } from "@/lib/i18n";
 import { getDict } from "@/lib/i18n-server";
-import { listBrands, listCategories, listProducts } from "@/lib/repo";
+import { listBrands, listCategories, listHomeBrands, listProducts } from "@/lib/repo";
 import type { Shape, Tone } from "@/lib/types";
 
 const categoryArt: Record<string, { shape: Shape; tone: Tone }> = {
@@ -21,6 +20,8 @@ const categoryArt: Record<string, { shape: Shape; tone: Tone }> = {
   body: { shape: "pump", tone: "blush" },
   "inner-beauty": { shape: "ampoule", tone: "blush" },
   "kids-vitamins": { shape: "jar", tone: "lime" },
+  luxury: { shape: "jar", tone: "honey" },
+  cosmetology: { shape: "pump", tone: "olive" },
 };
 
 const fallbackArt: { shape: Shape; tone: Tone }[] = [
@@ -29,25 +30,47 @@ const fallbackArt: { shape: Shape; tone: Tone }[] = [
   { shape: "dropper", tone: "lime" },
 ];
 
-const whyIcons: IconName[] = ["shield", "plane", "box", "sparkle"];
-
 export default async function HomePage() {
   const { lang, t } = await getDict();
   const careSlugs = new Set(["serums", "cleansing", "toners", "creams", "sun", "masks", "body"]);
   const categories = listCategories().filter((c) => c.count > 0 && careSlugs.has(c.slug));
-  const featured = listProducts({ featured: true, limit: 8 });
-  const fresh = listProducts({ isNew: true, sort: "new", limit: 10 });
+  const allCats = listCategories();
+  const featured = listProducts({ featured: true, limit: 4 });
+  const fresh = listProducts({ isNew: true, sort: "new", limit: 6 });
   const all = listProducts();
-  const brands = listBrands();
+  const brandsAll = listBrands();
+  const brands = listHomeBrands(8);
   const spotlight = fresh.find((p) => p.isFeatured) ?? featured[0] ?? all[0];
-  const bestsellers = featured.length ? featured : all.slice(0, 8);
-  const newList = fresh.length ? fresh : listProducts({ sort: "new", limit: 8 });
-  const innerBeauty = listProducts({ category: "inner-beauty", limit: 8 });
-  const kidsVitamins = listProducts({ category: "kids-vitamins", limit: 8 });
+  const bestsellers = featured.length ? featured : all.slice(0, 4);
+  const newList = fresh.length ? fresh : listProducts({ sort: "new", limit: 6 });
+
+  const deptDefs = [
+    { slug: "inner-beauty", eyebrow: t.sections.innerEyebrow, title: t.sections.innerTitle },
+    { slug: "kids-vitamins", eyebrow: t.sections.kidsEyebrow, title: t.sections.kidsTitle },
+    { slug: "luxury", eyebrow: t.sections.luxuryEyebrow, title: t.sections.luxuryTitle },
+    { slug: "cosmetology", eyebrow: t.sections.cosmetologyEyebrow, title: t.sections.cosmetologyTitle },
+  ] as const;
+
+  const departments = deptDefs
+    .map((d, i) => {
+      const cat = allCats.find((c) => c.slug === d.slug);
+      if (!cat || cat.count === 0) return null;
+      return {
+        ...d,
+        count: cat.count,
+        art: categoryArt[d.slug] ?? fallbackArt[i % fallbackArt.length],
+      };
+    })
+    .filter(Boolean) as Array<{
+    slug: string;
+    eyebrow: string;
+    title: string;
+    count: number;
+    art: { shape: Shape; tone: Tone };
+  }>;
 
   return (
     <>
-      {/* Hero */}
       <section className="hero">
         <div className="container hero-grid">
           <div className="hero-copy intro">
@@ -67,7 +90,7 @@ export default async function HomePage() {
               <Link href="/catalog" className="btn btn-primary">
                 {t.hero.ctaCatalog} <Icon name="arrow" size={18} className="ico-move" />
               </Link>
-              <Link href="/#wholesale" className="btn btn-glass">
+              <Link href="/wholesale" className="btn btn-glass">
                 {t.hero.ctaWholesale}
               </Link>
             </div>
@@ -77,7 +100,7 @@ export default async function HomePage() {
                 <span>{t.hero.statProducts}</span>
               </div>
               <div>
-                <strong>{brands.length}</strong>
+                <strong>{brandsAll.length}</strong>
                 <span>{t.hero.statBrands}</span>
               </div>
               <div>
@@ -123,30 +146,36 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Brands marquee */}
       {brands.length > 0 && (
-        <section className="section-tight" style={{ paddingTop: 24 }} aria-label={t.sections.brandsTitle}>
-          <div className="container">
-            <div className="marquee glass">
-              <div className="marquee-track">
-                {[0, 1, 2, 3].map((copy) => (
-                  <div key={copy} className="marquee-copy" aria-hidden={copy > 0}>
-                    {brands.map((b) => (
-                      <Link key={b.brand} href={`/catalog?brand=${encodeURIComponent(b.brand)}`} tabIndex={copy > 0 ? -1 : 0}>
-                        {b.brand}
-                      </Link>
-                    ))}
-                  </div>
-                ))}
+        <section className="section" style={{ paddingTop: 48 }} aria-label={t.sections.brandsTitle}>
+          <div className="container" data-reveal>
+            <div className="section-head">
+              <div>
+                <p className="eyebrow">{t.sections.brandsEyebrow}</p>
+                <h2 className="h2">{t.sections.brandsTitle}</h2>
               </div>
+              <Link href="/catalog" className="btn btn-glass btn-sm">
+                {t.sections.viewAll} <Icon name="arrow" size={16} className="ico-move" />
+              </Link>
+            </div>
+            <div className="brand-grid brand-grid-home">
+              {brands.map((b) => (
+                <Link
+                  key={b.brand}
+                  href={`/catalog?brand=${encodeURIComponent(b.brand)}`}
+                  className="brand-card glass"
+                >
+                  <strong>{b.brand}</strong>
+                  <span>{productCount(b.count, lang)}</span>
+                </Link>
+              ))}
             </div>
           </div>
         </section>
       )}
 
-      {/* Categories — уход */}
       {categories.length > 0 && (
-        <section className="section" style={{ paddingTop: 72 }}>
+        <section className="section" style={{ paddingTop: 0 }}>
           <div className="container">
             <div className="section-head" data-reveal>
               <div>
@@ -193,19 +222,18 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* 1. Популярные бренды из Кореи */}
-      <section className="section" id="bestsellers" style={{ paddingTop: 0 }}>
+      <section className="section" style={{ paddingTop: 0 }}>
         <div className="container">
           <div className="section-head" data-reveal>
             <div>
               <p className="eyebrow">{t.sections.bestsellersEyebrow}</p>
               <h2 className="h2">{t.sections.bestsellersTitle}</h2>
             </div>
-            <Link href="/catalog" className="btn btn-glass btn-sm">
+            <Link href="/bestsellers" className="btn btn-glass btn-sm">
               {t.sections.viewAll} <Icon name="arrow" size={16} className="ico-move" />
             </Link>
           </div>
-          <div className="product-grid">
+          <div className="scroller">
             {bestsellers.map((p, i) => (
               <ProductCard key={p.id} product={p} t={t} delay={(i % 4) * 0.06} />
             ))}
@@ -213,7 +241,6 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Spotlight */}
       {spotlight && (
         <section className="section" style={{ paddingTop: 0 }}>
           <div className="container">
@@ -246,9 +273,8 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* 2. Новинки корейского рынка */}
       {newList.length > 0 && (
-        <section className="section" id="new" style={{ paddingTop: 0 }}>
+        <section className="section" style={{ paddingTop: 0 }}>
           <div className="container">
             <div className="section-head" data-reveal>
               <div>
@@ -268,158 +294,49 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* 3. INNER BEAUTY */}
-      {innerBeauty.length > 0 && (
-        <section className="section" id="inner-beauty" style={{ paddingTop: 0 }}>
+      {departments.length > 0 && (
+        <section className="section" style={{ paddingTop: 0 }}>
           <div className="container">
             <div className="section-head" data-reveal>
               <div>
-                <p className="eyebrow">{t.sections.innerEyebrow}</p>
-                <h2 className="h2">{t.sections.innerTitle}</h2>
+                <p className="eyebrow">{t.sections.deptsEyebrow}</p>
+                <h2 className="h2">{t.sections.deptsTitle}</h2>
               </div>
-              <Link href="/catalog?category=inner-beauty" className="btn btn-glass btn-sm">
-                {t.sections.viewAll} <Icon name="arrow" size={16} className="ico-move" />
+              <Link href="/catalog" className="btn btn-glass btn-sm">
+                {t.nav.catalog} <Icon name="arrow" size={16} className="ico-move" />
               </Link>
             </div>
-            <div className="product-grid">
-              {innerBeauty.map((p, i) => (
-                <ProductCard key={p.id} product={p} t={t} delay={(i % 4) * 0.06} />
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* 4. Детские витамины */}
-      {kidsVitamins.length > 0 && (
-        <section className="section" id="kids-vitamins" style={{ paddingTop: 0 }}>
-          <div className="container">
-            <div className="section-head" data-reveal>
-              <div>
-                <p className="eyebrow">{t.sections.kidsEyebrow}</p>
-                <h2 className="h2">{t.sections.kidsTitle}</h2>
-              </div>
-              <Link href="/catalog?category=kids-vitamins" className="btn btn-glass btn-sm">
-                {t.sections.viewAll} <Icon name="arrow" size={16} className="ico-move" />
-              </Link>
-            </div>
-            <div className="product-grid">
-              {kidsVitamins.map((p, i) => (
-                <ProductCard key={p.id} product={p} t={t} delay={(i % 4) * 0.06} />
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* About founders */}
-      <section className="section" id="about" style={{ paddingTop: 40 }}>
-        <div className="container">
-          <div className="about-story glass" data-reveal>
-            <div className="about-photo">
-              <img src="/founders.jpg" alt={t.about.photoAlt} />
-            </div>
-            <div className="about-copy">
-              <div>
-                <p className="eyebrow">{t.about.eyebrow}</p>
-                <h2 className="h2">{t.about.title}</h2>
-              </div>
-              <p className="lead">{t.about.lead}</p>
-              <div className="story">
-                {t.about.paragraphs.map((p) => (
-                  <p key={p.slice(0, 40)}>{p}</p>
-                ))}
-              </div>
-              <div className="about-sign">
-                {t.about.closing}
-                <strong>{t.about.sign}</strong>
-              </div>
-            </div>
-          </div>
-          <div className="why-grid" style={{ marginTop: 28 }}>
-            {t.why.items.map((item, i) => (
-              <div key={item.title} className="why-card glass" data-reveal style={{ ["--d" as string]: `${i * 0.07}s` }}>
-                <div className="ico">
-                  <Icon name={whyIcons[i]} size={22} />
-                </div>
-                <h3 className="h3">{item.title}</h3>
-                <p>{item.text}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Steps */}
-      <section className="section" style={{ paddingTop: 0 }}>
-        <div className="container">
-          <div className="section-head" data-reveal>
-            <div>
-              <p className="eyebrow">{t.steps.eyebrow}</p>
-              <h2 className="h2">{t.steps.title}</h2>
-            </div>
-          </div>
-          <div className="steps">
-            {t.steps.items.map((s, i) => (
-              <div key={s.title} className="step glass" data-reveal style={{ ["--d" as string]: `${i * 0.07}s` }}>
-                <div className="step-num">0{i + 1}</div>
-                <h3 className="h3">{s.title}</h3>
-                <p>{s.text}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Wholesale */}
-      <section className="section" id="wholesale" style={{ paddingTop: 0 }}>
-        <div className="container">
-          <div className="wholesale glass" data-reveal>
-            <div style={{ position: "relative" }}>
-              <p className="eyebrow">{t.wholesale.eyebrow}</p>
-              <h2 className="h2">{t.wholesale.title}</h2>
-              <p className="lead">{t.wholesale.text}</p>
-              <ul className="checks">
-                {t.wholesale.points.map((point) => (
-                  <li key={point}>
-                    <span>
-                      <Icon name="check" size={15} strokeWidth={2.4} />
-                    </span>
-                    {point}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <LeadForm />
-          </div>
-        </div>
-      </section>
-
-      {/* FAQ */}
-      <section className="section" id="faq" style={{ paddingTop: 0 }}>
-        <div className="container faq-wrap">
-          <div data-reveal>
-            <p className="eyebrow">{t.faq.eyebrow}</p>
-            <h2 className="h2">{t.faq.title}</h2>
-          </div>
-          <div className="faq-list">
-            {t.faq.items.map((item, i) => (
-              <details key={item.q} className="faq-item glass" data-reveal style={{ ["--d" as string]: `${i * 0.05}s` }}>
-                <summary>
-                  {item.q}
-                  <span className="plus">
-                    <Icon name="plus" size={16} />
+            <div className="cat-grid">
+              {departments.map((d, i) => (
+                <Link
+                  key={d.slug}
+                  href={`/catalog?category=${d.slug}`}
+                  className="cat-card glass"
+                  data-reveal
+                  style={{
+                    ["--d" as string]: `${i * 0.05}s`,
+                    ["--span" as string]: 1,
+                    ["--span-m" as string]: 1,
+                  }}
+                >
+                  <div>
+                    <h3>{d.eyebrow}</h3>
+                    <span className="count">{productCount(d.count, lang)}</span>
+                  </div>
+                  <span className="go">
+                    <Icon name="arrow" size={16} />
                   </span>
-                </summary>
-                <p>{item.a}</p>
-              </details>
-            ))}
+                  <div className="cat-art">
+                    <ProductArt shape={d.art.shape} tone={d.art.tone} brand="Hana" uid={`dept-${d.slug}`} />
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/* Contacts */}
-      <section className="section" id="contacts" style={{ paddingTop: 0, paddingBottom: 40 }}>
+      <section className="section" style={{ paddingTop: 0, paddingBottom: 40 }}>
         <div className="container">
           <div className="cta glass" data-reveal>
             <p className="eyebrow">{t.contacts.eyebrow}</p>
@@ -429,6 +346,9 @@ export default async function HomePage() {
               <a href={whatsappUrl()} target="_blank" rel="noreferrer" className="btn btn-wa">
                 <WhatsAppIcon /> {t.contacts.whatsapp}
               </a>
+              <Link href="/about" className="btn btn-glass">
+                {t.nav.about}
+              </Link>
               <a href={instagramUrl} target="_blank" rel="noreferrer" className="btn btn-glass">
                 <Icon name="instagram" size={18} /> {t.contacts.instagram}
               </a>

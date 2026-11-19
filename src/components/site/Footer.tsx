@@ -30,15 +30,16 @@ export function Footer({ t }: { t: Dict }) {
               <ul>
                 <li><Link href="/catalog">{t.nav.catalog}</Link></li>
                 <li><Link href="/catalog?sort=new">{t.catalog.sortNew}</Link></li>
-                <li><Link href="/#bestsellers">{t.nav.bestsellers}</Link></li>
+                <li><Link href="/bestsellers">{t.nav.bestsellers}</Link></li>
               </ul>
             </div>
             <div>
               <h4>{t.footer.help}</h4>
               <ul>
-                <li><Link href="/#about">{t.nav.about}</Link></li>
-                <li><Link href="/#wholesale">{t.nav.wholesale}</Link></li>
-                <li><Link href="/#faq">{t.nav.faq}</Link></li>
+                <li><Link href="/about">{t.nav.about}</Link></li>
+                <li><Link href="/wholesale">{t.nav.wholesale}</Link></li>
+                <li><Link href="/faq">{t.nav.faq}</Link></li>
+                <li><Link href="/contacts">{t.nav.contacts}</Link></li>
               </ul>
             </div>
             <div>
@@ -54,6 +55,14 @@ export function Footer({ t }: { t: Dict }) {
             <span>© {new Date().getFullYear()} Hana Beauty. {t.footer.rights}</span>
             <span>{store.tagline}</span>
           </div>
+          <a
+            className="footer-credit"
+            href="https://instagram.com/nurissingo"
+            target="_blank"
+            rel="noreferrer"
+          >
+            {t.footer.madeBy} <span>@nurissingo</span>
+          </a>
         </div>
       </div>
     </footer>

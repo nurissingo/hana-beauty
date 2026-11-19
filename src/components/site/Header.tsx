@@ -69,10 +69,10 @@ export function Header() {
 
   const links = [
     { href: "/catalog", label: t.nav.catalog },
-    { href: "/#bestsellers", label: t.nav.bestsellers },
-    { href: "/#about", label: t.nav.about },
-    { href: "/#wholesale", label: t.nav.wholesale },
-    { href: "/#faq", label: t.nav.faq },
+    { href: "/bestsellers", label: t.nav.bestsellers },
+    { href: "/about", label: t.nav.about },
+    { href: "/wholesale", label: t.nav.wholesale },
+    { href: "/faq", label: t.nav.faq },
   ];
 
   const langSwitch = (
@@ -112,10 +112,10 @@ export function Header() {
                   </span>
                 )}
               </button>
-              <button type="button" className="icon-btn menu-btn" aria-label={t.nav.menu} onClick={() => setMenu(true)}>
-                <Icon name="menu" />
-              </button>
             </div>
+            <button type="button" className="icon-btn menu-btn" aria-label={t.nav.menu} onClick={() => setMenu(true)}>
+              <Icon name="menu" />
+            </button>
           </div>
           <div className={`search-pop ${search ? "open" : ""}`}>
             <form action="/catalog" className="glass-strong" role="search">
@@ -129,27 +129,32 @@ export function Header() {
         </div>
       </header>
 
-      <div className={`mobile-menu ${menu ? "open" : ""}`} aria-hidden={!menu}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <Logo />
+      <div
+        className={`mobile-menu-backdrop ${menu ? "open" : ""}`}
+        aria-hidden={!menu}
+        onClick={() => setMenu(false)}
+      />
+      <aside className={`mobile-menu ${menu ? "open" : ""}`} aria-hidden={!menu}>
+        <div className="mobile-menu-head">
+          <span className="mobile-menu-title">hana beauty</span>
           <button type="button" className="icon-btn" aria-label={t.nav.close} onClick={() => setMenu(false)}>
             <Icon name="close" />
           </button>
         </div>
         <nav>
-          {[...links, { href: "/#contacts", label: t.nav.contacts }].map((l) => (
+          {[...links, { href: "/contacts", label: t.nav.contacts }].map((l) => (
             <Link key={l.href} href={l.href} onClick={() => setMenu(false)} tabIndex={menu ? 0 : -1}>
               {l.label}
             </Link>
           ))}
         </nav>
-        <div style={{ marginTop: "auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div className="mobile-menu-foot">
           {langSwitch}
-          <button type="button" className="btn btn-primary" onClick={() => { setMenu(false); cart.setOpen(true); }}>
-            <Icon name="bag" size={18} /> {t.nav.cart} {cart.count > 0 ? `· ${cart.count}` : ""}
+          <button type="button" className="btn btn-primary btn-sm" onClick={() => { setMenu(false); cart.setOpen(true); }}>
+            <Icon name="bag" size={16} /> {t.nav.cart} {cart.count > 0 ? `· ${cart.count}` : ""}
           </button>
         </div>
-      </div>
+      </aside>
     </>
   );
 }

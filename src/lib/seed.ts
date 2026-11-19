@@ -11,6 +11,8 @@ const categories = [
   { slug: "body", ru: "Тело и волосы", kz: "Дене мен шаш" },
   { slug: "inner-beauty", ru: "INNER BEAUTY", kz: "INNER BEAUTY" },
   { slug: "kids-vitamins", ru: "Детские витамины", kz: "Балалар витаминдері" },
+  { slug: "luxury", ru: "Люксовая косметика", kz: "Люкс косметика" },
+  { slug: "cosmetology", ru: "Косметология", kz: "Косметология" },
 ];
 
 type SeedProduct = {
@@ -448,10 +450,116 @@ const products: SeedProduct[] = [
     shape: "jar",
     tone: "honey",
   },
+  {
+    slug: "sulwhasoo-concentrated-ginseng",
+    name: "Concentrated Ginseng Renewing Cream",
+    brand: "Sulwhasoo",
+    category: "luxury",
+    price: 89900,
+    oldPrice: 99000,
+    volume: "60 мл",
+    shortDesc: "Люксовый крем с женьшенем для упругости и сияния.",
+    description: "Премиальный уход Sulwhasoo на основе корейского женьшеня. Восстанавливает плотность кожи и дарит благородное сияние.",
+    usage: "Нанесите на чистую кожу лица утром и вечером.",
+    ingredients: "Ginseng Extract, Squalane, Ceramide.",
+    skinType: "Для зрелой и нормальной кожи",
+    stock: 8,
+    featured: true,
+    isNew: true,
+    shape: "jar",
+    tone: "honey",
+  },
+  {
+    slug: "ohui-miracle-moisture",
+    name: "Miracle Moisture Ampoule 777",
+    brand: "OHUI",
+    category: "luxury",
+    price: 64900,
+    volume: "50 мл",
+    shortDesc: "Люксовая ампула глубокого увлажнения.",
+    description: "Концентрированная ампула OHUI для интенсивного увлажнения и восстановления барьера кожи.",
+    usage: "2–3 капли после тонера, до крема.",
+    ingredients: "Hyaluronic Acid, Panthenol, Peptides.",
+    skinType: "Для сухой и обезвоженной кожи",
+    stock: 10,
+    featured: true,
+    shape: "dropper",
+    tone: "ivory",
+  },
+  {
+    slug: "hera-uv-protector",
+    name: "UV Protector Tone-up",
+    brand: "HERA",
+    category: "luxury",
+    price: 42900,
+    volume: "50 мл",
+    shortDesc: "Премиальный санскрин с эффектом тона.",
+    description: "Люксовая защита от солнца с лёгким тонирующим эффектом — ровный тон и SPF.",
+    usage: "Последним шагом утреннего ухода.",
+    ingredients: "UV Filters, Niacinamide, Vitamin E.",
+    skinType: "Для всех типов кожи",
+    stock: 12,
+    isNew: true,
+    shape: "tube",
+    tone: "blush",
+  },
+  {
+    slug: "medicube-age-r-booster",
+    name: "Age-R Booster Pro",
+    brand: "Medicube",
+    category: "cosmetology",
+    price: 159900,
+    volume: "1 шт",
+    shortDesc: "Косметологический аппарат для домашнего ухода.",
+    description: "Профессиональный бустер Medicube для процедур дома: лифтинг, ток, LED-уход.",
+    usage: "Используйте с сыворотками бренда по инструкции.",
+    ingredients: "Electronic device",
+    skinType: "Для процедур ухода",
+    stock: 5,
+    featured: true,
+    isNew: true,
+    shape: "pump",
+    tone: "olive",
+  },
+  {
+    slug: "dr-jart-ceramidin-liquid",
+    name: "Ceramidin Skin Barrier Serum",
+    brand: "Dr.Jart+",
+    category: "cosmetology",
+    price: 24900,
+    volume: "40 мл",
+    shortDesc: "Сыворотка для восстановления барьера после процедур.",
+    description: "Косметологический уход с церамидами — успокаивает и укрепляет кожу после пилингов и аппаратных процедур.",
+    usage: "Нанесите на чистую кожу утром и вечером.",
+    ingredients: "Ceramide NP, Panthenol, Madecassoside.",
+    skinType: "Для чувствительной кожи",
+    stock: 15,
+    featured: true,
+    shape: "dropper",
+    tone: "sage",
+  },
+  {
+    slug: "cellfusion-c-laser-sunscreen",
+    name: "Laser Sunscreen 100",
+    brand: "Cell Fusion C",
+    category: "cosmetology",
+    price: 18900,
+    volume: "50 мл",
+    shortDesc: "Санскрин для кожи после косметологических процедур.",
+    description: "Профессиональный SPF после лазерных и пилинговых процедур — мягкая защита без раздражения.",
+    usage: "Нанесите щедрым слоем перед выходом на улицу.",
+    ingredients: "UV Filters, Centella Asiatica, Panthenol.",
+    skinType: "После процедур",
+    stock: 18,
+    shape: "tube",
+    tone: "lime",
+  },
 ];
 
+const EXTRA_SLUGS = new Set(["inner-beauty", "kids-vitamins", "luxury", "cosmetology"]);
+
 function ensureExtra(db: DatabaseSync) {
-  const extras = categories.filter((c) => c.slug === "inner-beauty" || c.slug === "kids-vitamins");
+  const extras = categories.filter((c) => EXTRA_SLUGS.has(c.slug));
   const insertCategory = db.prepare(
     "INSERT OR IGNORE INTO categories (slug, name_ru, name_kz, sort) VALUES (?, ?, ?, ?)",
   );
@@ -465,7 +573,7 @@ function ensureExtra(db: DatabaseSync) {
       description, usage, ingredients, skin_type, stock, is_featured, is_new, shape, tone, search)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
-  for (const p of products.filter((x) => x.category === "inner-beauty" || x.category === "kids-vitamins")) {
+  for (const p of products.filter((x) => EXTRA_SLUGS.has(x.category))) {
     const categoryId = idOf(p.category);
     if (!categoryId) continue;
     insertProduct.run(
